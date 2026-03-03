@@ -80,6 +80,21 @@ func TestNormalizeMetricName(t *testing.T) {
 			input:    "metric{label}",
 			expected: "metric_label",
 		},
+		{
+			name:     "metric name with only special characters results in empty",
+			input:    "!@#$%^&*()",
+			expected: "",
+		},
+		{
+			name:     "metric name with only underscores results in empty",
+			input:    "____",
+			expected: "",
+		},
+		{
+			name:     "metric name that becomes empty after normalization",
+			input:    "___!!!___",
+			expected: "",
+		},
 	}
 
 	for _, tt := range tests {

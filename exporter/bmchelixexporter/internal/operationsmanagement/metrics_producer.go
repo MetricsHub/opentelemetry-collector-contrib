@@ -245,7 +245,11 @@ func (mp *MetricsProducer) createSingleDatapointMetric(dp pmetric.NumberDataPoin
 	labels["isDeviceMappingEnabled"] = "true"
 
 	// Update the metric name for the BMC Helix Operations Management payload
-	labels["metricName"] = NormalizeMetricName(metric.Name())
+	normalizedMetricName := NormalizeMetricName(metric.Name())
+	if normalizedMetricName == "" {
+		return nil, fmt.Errorf("the normalized metric name is empty for metric %s. Metric datapoint will be skipped", metric.Name())
+	}
+	labels["metricName"] = normalizedMetricName
 
 	// Update the entity information
 	err := mp.updateEntityInformation(labels, metric.Name(), resourceAttrs, dp.Attributes().AsRaw())
@@ -379,7 +383,14 @@ func createEnrichedMetricWithDpAttributes(metric *BMCHelixOMMetric, dpAttrs map[
 	maps.Copy(dup.Labels, metric.Labels)
 
 	original := dup.Labels["metricName"]
-	dup.Labels["metricName"] = NormalizeMetricName(original + "." + strings.Join(suffixParts, "."))
+	enrichedMetricName := NormalizeMetricName(original + "." + strings.Join(suffixParts, "."))
+	
+	// If the enriched metric name is empty, skip this enriched metric
+	if enrichedMetricName == "" {
+		return nil
+	}
+	
+	dup.Labels["metricName"] = enrichedMetricName
 
 	// Remove the entityId from the original metric since a derived metric is being created
 	// This will ensure that the original metric will not be reported in BHOM but still
