@@ -273,14 +273,14 @@ func (*MetricsProducer) updateEntityInformation(labels map[string]string, metric
 		}
 		maybeHostname = NormalizeHostname(maybeHostname)
 		if maybeHostname == "" {
-			return fmt.Errorf("the hostname is required for the BMC Helix Operations Management payload but is invalid or empty after normalization for metric %s. Metric datapoint will be skipped", metricName)
+			return fmt.Errorf("the hostname is required for the BMC Helix Operations Management payload but is empty after normalization for metric %s. Metric datapoint will be skipped", metricName)
 		}
 		hostname = maybeHostname
 	} else {
 		// Normalize the hostname from resource attributes
 		hostname = NormalizeHostname(hostname)
 		if hostname == "" {
-			return fmt.Errorf("the hostname is required for the BMC Helix Operations Management payload but is invalid or empty after normalization for metric %s. Metric datapoint will be skipped", metricName)
+			return fmt.Errorf("the hostname is required for the BMC Helix Operations Management payload but is empty after normalization for metric %s. Metric datapoint will be skipped", metricName)
 		}
 	}
 
