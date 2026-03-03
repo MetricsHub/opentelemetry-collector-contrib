@@ -506,8 +506,9 @@ func TestCreateEnrichedMetricWithEmptyName(t *testing.T) {
 			if tt.expectNil {
 				assert.Nil(t, result, tt.description)
 			} else {
+				assert.NotNil(t, result, tt.description)
 				if result != nil {
-					// If result is not nil, verify the metric name is not empty
+					// Verify the metric name is not empty
 					assert.NotEmpty(t, result.Labels["metricName"], "Enriched metric name should not be empty")
 				}
 			}
