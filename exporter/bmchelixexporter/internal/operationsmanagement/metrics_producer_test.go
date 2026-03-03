@@ -4,7 +4,6 @@
 package operationsmanagement
 
 import (
-	"maps"
 	"testing"
 	"time"
 
@@ -122,6 +121,7 @@ func TestProduceHelixPayload(t *testing.T) {
 func generateMockMetrics(setMetricType func(metric pmetric.Metric) pmetric.NumberDataPointSlice) pmetric.Metrics {
 	metrics := pmetric.NewMetrics()
 	rm := metrics.ResourceMetrics().AppendEmpty()
+	rm.Resource().Attributes().PutStr("host.name", "test-hostname")
 	il := rm.ScopeMetrics().AppendEmpty().Metrics()
 	metric := il.AppendEmpty()
 	metric.SetName("test_metric")
@@ -132,7 +132,6 @@ func generateMockMetrics(setMetricType func(metric pmetric.Metric) pmetric.Numbe
 
 	// First datapoint
 	dp1 := dps.AppendEmpty()
-	dp1.Attributes().PutStr("host.name", "test-hostname")
 	dp1.Attributes().PutStr("entityName", "test-entity-1")
 	dp1.Attributes().PutStr("entityTypeId", "test-entity-type-id")
 	dp1.Attributes().PutStr("instanceName", "test-entity-Name-1")
@@ -141,7 +140,6 @@ func generateMockMetrics(setMetricType func(metric pmetric.Metric) pmetric.Numbe
 
 	// Second datapoint
 	dp2 := dps.AppendEmpty()
-	dp2.Attributes().PutStr("host.name", "test-hostname")
 	dp2.Attributes().PutStr("entityName", "test-entity-2")
 	dp2.Attributes().PutStr("entityTypeId", "test-entity-type-id")
 	dp2.Attributes().PutStr("instanceName", "test-entity-Name-2")
@@ -151,133 +149,110 @@ func generateMockMetrics(setMetricType func(metric pmetric.Metric) pmetric.Numbe
 	return metrics
 }
 
-func TestEnrichMetricNamesWithAttributes(t *testing.T) {
+func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name           string
-		inputMetrics   []BMCHelixOMMetric
-		expectedLabels []map[string]string
+		name               string
+		inputMetric        *BMCHelixOMMetric
+		dpAttrs            map[string]any
+		expectedMetricName string
+		expectNil          bool
 	}{
 		{
-			name: "Single metric without varying attributes",
-			inputMetrics: []BMCHelixOMMetric{
-				{
-					Labels: map[string]string{
-						"entityId":           "host:cpu:core0",
-						"metricName":         "system.cpu.time",
-						"cpu.mode":           "idle",
-						"cpu.logical_number": "0",
-					},
+			name: "No non-core attributes returns nil",
+			inputMetric: &BMCHelixOMMetric{
+				Labels: map[string]string{
+					"entityId":   "host:cpu:core0",
+					"metricName": "system.cpu.time",
+					"hostname":   "myhost",
 				},
 			},
-			expectedLabels: []map[string]string{
-				{
-					"entityId":           "host:cpu:core0",
-					"metricName":         "system.cpu.time",
-					"cpu.mode":           "idle",
-					"cpu.logical_number": "0",
-				},
+			dpAttrs: map[string]any{
+				"hostname": "myhost", // core attribute only
 			},
+			expectNil: true,
 		},
 		{
-			name: "Metrics with different state values",
-			inputMetrics: []BMCHelixOMMetric{
-				{
-					Labels: map[string]string{
-						"entityId":   "host:cpu:core0",
-						"metricName": "system.cpu.time",
-						"cpu.mode":   "idle",
-					},
-				},
-				{
-					Labels: map[string]string{
-						"entityId":   "host:cpu:core0",
-						"metricName": "system.cpu.time",
-						"cpu.mode":   "user",
-					},
+			name: "Single non-core attribute appends normalized value",
+			inputMetric: &BMCHelixOMMetric{
+				Labels: map[string]string{
+					"entityId":   "host:cpu:core0",
+					"metricName": "system.cpu.time",
 				},
 			},
-			expectedLabels: []map[string]string{
-				{
-					"metricName": "system.cpu.time",
-					"cpu.mode":   "idle",
-				},
-				{
-					"entityId":   "host:cpu:core0",
-					"metricName": "system.cpu.time.idle",
-				},
-				{
-					"metricName": "system.cpu.time",
-					"cpu.mode":   "user",
-				},
-				{
-					"entityId":   "host:cpu:core0",
-					"metricName": "system.cpu.time.user",
-				},
+			dpAttrs: map[string]any{
+				"cpu.mode": "idle",
 			},
+			expectedMetricName: "system.cpu.time.idle",
 		},
 		{
-			name: "Metrics with multiple varying attributes",
-			inputMetrics: []BMCHelixOMMetric{
-				{
-					Labels: map[string]string{
-						"entityId":           "host:cpu:core0",
-						"metricName":         "system.cpu.time",
-						"cpu.mode":           "system",
-						"cpu.mode.code":      "0",
-						"cpu.logical_number": "0",
-					},
-				},
-				{
-					Labels: map[string]string{
-						"entityId":           "host:cpu:core0",
-						"metricName":         "system.cpu.time",
-						"cpu.mode":           "user",
-						"cpu.mode.code":      "1",
-						"cpu.logical_number": "0",
-					},
+			name: "Multiple non-core attributes sorted by key",
+			inputMetric: &BMCHelixOMMetric{
+				Labels: map[string]string{
+					"entityId":   "host:cpu:core0",
+					"metricName": "system.cpu.time",
 				},
 			},
-			expectedLabels: []map[string]string{
-				{
-					"metricName":         "system.cpu.time",
-					"cpu.mode":           "system",
-					"cpu.mode.code":      "0",
-					"cpu.logical_number": "0",
-				},
-				{
-					"entityId":           "host:cpu:core0",
-					"metricName":         "system.cpu.time.system.0",
-					"cpu.logical_number": "0",
-				},
-				{
-					"metricName":         "system.cpu.time",
-					"cpu.mode":           "user",
-					"cpu.mode.code":      "1",
-					"cpu.logical_number": "0",
-				},
-				{
-					"entityId":           "host:cpu:core0",
-					"metricName":         "system.cpu.time.user.1",
-					"cpu.logical_number": "0",
+			dpAttrs: map[string]any{
+				"cpu.mode": "user",
+				"cpu.core": "0",
+			},
+			expectedMetricName: "system.cpu.time.0.user", // cpu.core < cpu.mode
+		},
+		{
+			name: "Attribute values are normalized",
+			inputMetric: &BMCHelixOMMetric{
+				Labels: map[string]string{
+					"metricName": "my.metric",
 				},
 			},
+			dpAttrs: map[string]any{
+				"state": "Read/Write (Active)",
+			},
+			expectedMetricName: "my.metric.Read_Write_Active",
+		},
+		{
+			name: "Empty and nil attribute values are skipped",
+			inputMetric: &BMCHelixOMMetric{
+				Labels: map[string]string{
+					"metricName": "my.metric",
+				},
+			},
+			dpAttrs: map[string]any{
+				"valid": "ok",
+				"empty": "",
+				"nil":   nil,
+			},
+			expectedMetricName: "my.metric.ok",
+		},
+		{
+			name: "All attributes empty or nil returns nil",
+			inputMetric: &BMCHelixOMMetric{
+				Labels: map[string]string{
+					"metricName": "my.metric",
+				},
+			},
+			dpAttrs: map[string]any{
+				"empty": "",
+				"nil":   nil,
+			},
+			expectNil: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := enrichMetricNamesWithAttributes(tt.inputMetrics)
+			result := createEnrichedMetricWithDpAttributes(tt.inputMetric, tt.dpAttrs)
 
-			var actualLabels []map[string]string
-			for _, m := range result {
-				// Copy to a new map to avoid mutation side-effects
-				labelsCopy := make(map[string]string)
-				maps.Copy(labelsCopy, m.Labels)
-				actualLabels = append(actualLabels, labelsCopy)
+			if tt.expectNil {
+				assert.Nil(t, result)
+				return
 			}
 
-			assert.ElementsMatch(t, tt.expectedLabels, actualLabels)
+			assert.NotNil(t, result)
+			assert.Equal(t, tt.expectedMetricName, result.Labels["metricName"])
+			// Ensure original metric is not mutated
+			assert.NotEqual(t, tt.inputMetric.Labels["metricName"], result.Labels["metricName"])
 		})
 	}
 }
