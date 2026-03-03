@@ -268,8 +268,11 @@ func (*MetricsProducer) updateEntityInformation(labels map[string]string, metric
 	if !found || hostname == "" {
 		// Fallback to metric attributes if not found or empty in resource attributes
 		maybeHostname, ok := dpAttributes[string(conventions.HostNameKey)].(string)
+		if !ok {
+			return fmt.Errorf("the hostname is required for the BMC Helix Operations Management payload but not set for metric %s. Metric datapoint will be skipped", metricName)
+		}
 		maybeHostname = NormalizeHostname(maybeHostname)
-		if !ok || maybeHostname == "" {
+		if maybeHostname == "" {
 			return fmt.Errorf("the hostname is required for the BMC Helix Operations Management payload but not set for metric %s. Metric datapoint will be skipped", metricName)
 		}
 		hostname = maybeHostname
