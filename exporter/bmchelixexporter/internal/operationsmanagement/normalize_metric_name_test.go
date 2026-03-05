@@ -95,6 +95,21 @@ func TestNormalizeMetricName(t *testing.T) {
 			input:    "___!!!___",
 			expected: "",
 		},
+		{
+			name:     "metric name with unicode letters is sanitized to ASCII only",
+			input:    "café_metric",
+			expected: "caf_metric",
+		},
+		{
+			name:     "metric name with unicode digits is sanitized to ASCII only",
+			input:    "metric_\u0660\u0661\u0662",
+			expected: "metric",
+		},
+		{
+			name:     "metric name with unicode in the middle is sanitized",
+			input:    "metric_\u0660_test",
+			expected: "metric_test",
+		},
 	}
 
 	for _, tt := range tests {
@@ -122,4 +137,9 @@ func TestSanitizeMetricNameRune(t *testing.T) {
 	require.Equal(t, '_', sanitizeMetricNameRune(']'))
 	require.Equal(t, '_', sanitizeMetricNameRune('{'))
 	require.Equal(t, '_', sanitizeMetricNameRune('}'))
+
+	// Unicode letters and digits should be replaced with '_'
+	require.Equal(t, '_', sanitizeMetricNameRune('é'))
+	require.Equal(t, '_', sanitizeMetricNameRune('ñ'))
+	require.Equal(t, '_', sanitizeMetricNameRune('\u0660')) // Arabic-Indic digit zero
 }

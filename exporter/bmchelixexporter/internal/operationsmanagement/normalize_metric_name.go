@@ -5,19 +5,18 @@ package operationsmanagement // import "github.com/open-telemetry/opentelemetry-
 
 import (
 	"strings"
-	"unicode"
 )
 
-// NormalizeMetricName normalizes the metric name so that it starts with a Unicode letter or underscore,
-// followed by Unicode letters, digits, underscores, colons, or dots.
-// Unsafe characters are replaced with underscores.
+// NormalizeMetricName normalizes the metric name so that it matches [a-zA-Z_:.][a-zA-Z0-9_:.]*
+// Only ASCII letters, digits, underscores, colons, and dots are accepted.
+// Unsupported characters are replaced with underscores.
 // If the metric name starts with a digit, it is prefixed with an underscore.
 func NormalizeMetricName(name string) string {
 	if name == "" {
 		return name
 	}
 
-	// Replace all unsafe characters with underscores
+	// Replace all unsupported characters with underscores
 	name = strings.Map(sanitizeMetricNameRune, name)
 
 	// Collapse consecutive underscores
@@ -29,7 +28,7 @@ func NormalizeMetricName(name string) string {
 	name = strings.Trim(name, "_")
 
 	// Metric name cannot start with a digit, so prefix it with "_" in this case
-	if name != "" && unicode.IsDigit(rune(name[0])) {
+	if name != "" && name[0] >= '0' && name[0] <= '9' {
 		name = "_" + name
 	}
 
@@ -38,9 +37,9 @@ func NormalizeMetricName(name string) string {
 
 // sanitizeMetricNameRune returns the rune if it's valid for a metric name,
 // otherwise returns '_'.
-// Valid characters: letters, digits, underscore, colon, dot
+// Valid characters: ASCII letters (a-z, A-Z), ASCII digits (0-9), underscore, colon, dot.
 func sanitizeMetricNameRune(r rune) rune {
-	if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == ':' || r == '.' {
+	if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == ':' || r == '.' {
 		return r
 	}
 	return '_'
