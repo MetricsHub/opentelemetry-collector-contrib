@@ -434,28 +434,28 @@ func TestAddRateVariants(t *testing.T) {
 
 func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 	t.Parallel()
-	
+
 	producer := NewMetricsProducer(zap.NewExample())
-	
+
 	// Test 1: Metric with name that normalizes to empty string
 	metrics := pmetric.NewMetrics()
 	rm := metrics.ResourceMetrics().AppendEmpty()
 	resource := rm.Resource()
 	resource.Attributes().PutStr("host.name", "test-host")
-	
+
 	sm := rm.ScopeMetrics().AppendEmpty()
 	metric := sm.Metrics().AppendEmpty()
 	metric.SetName("!@#$%^&*()") // This will normalize to empty
-	
+
 	gauge := metric.SetEmptyGauge()
 	dp := gauge.DataPoints().AppendEmpty()
 	dp.SetTimestamp(1750926531000000000)
 	dp.SetDoubleValue(42.0)
 	dp.Attributes().PutStr("entityTypeId", "test-entity")
 	dp.Attributes().PutStr("entityName", "test-name")
-	
+
 	payload, err := producer.ProduceHelixPayload(metrics)
-	
+
 	// Should not return an error, but the payload should be empty since the metric was skipped
 	assert.NoError(t, err)
 	assert.Empty(t, payload, "Metrics with empty normalized names should be skipped")
@@ -463,7 +463,7 @@ func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 
 func TestCreateEnrichedMetricWithEmptyName(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name        string
 		metricName  string
@@ -472,25 +472,25 @@ func TestCreateEnrichedMetricWithEmptyName(t *testing.T) {
 		description string
 	}{
 		{
-			name:        "Enriched metric name becomes empty",
-			metricName:  "valid.metric",
-			dpAttrs:     map[string]any{
+			name:       "Enriched metric name becomes empty",
+			metricName: "valid.metric",
+			dpAttrs: map[string]any{
 				"attribute": "!@#$%", // This will normalize to empty, making the whole enriched name potentially empty
 			},
 			expectNil:   false, // The enriched name would be "valid.metric." which is not empty
 			description: "Even if attribute value normalizes poorly, base metric name keeps it non-empty",
 		},
 		{
-			name:        "Base metric name empty, enrichment attempted",
-			metricName:  "", // Empty base metric name
-			dpAttrs:     map[string]any{
+			name:       "Base metric name empty, enrichment attempted",
+			metricName: "", // Empty base metric name
+			dpAttrs: map[string]any{
 				"attribute": "value",
 			},
 			expectNil:   false, // Will create ".value" which normalizes to "value"
 			description: "Empty base with valid attribute creates enriched metric",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			inputMetric := &BMCHelixOMMetric{
@@ -500,9 +500,9 @@ func TestCreateEnrichedMetricWithEmptyName(t *testing.T) {
 				},
 				Samples: []BMCHelixOMSample{{Value: 1.0, Timestamp: 1000}},
 			}
-			
+
 			result := createEnrichedMetricWithDpAttributes(inputMetric, tt.dpAttrs)
-			
+
 			if tt.expectNil {
 				assert.Nil(t, result, tt.description)
 			} else {
