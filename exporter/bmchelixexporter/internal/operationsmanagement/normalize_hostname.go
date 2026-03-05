@@ -9,7 +9,7 @@ import (
 )
 
 // NormalizeHostname normalizes the hostname to contain only valid characters.
-// Allowed characters: a-zA-Z0-9-.
+// Allowed characters: Unicode letters, Unicode digits, hyphen (-), and dot (.).
 // Invalid characters are replaced with hyphens (DNS convention).
 func NormalizeHostname(hostname string) string {
 	if hostname == "" {
@@ -32,7 +32,7 @@ func NormalizeHostname(hostname string) string {
 
 // sanitizeHostnameRune returns the rune if it's valid for a hostname,
 // otherwise returns '-'.
-// Valid characters: letters, digits, hyphen, dot
+// Valid characters: Unicode letters, Unicode digits, hyphen, dot
 func sanitizeHostnameRune(r rune) rune {
 	if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '.' {
 		return r
