@@ -8,7 +8,8 @@ import (
 	"unicode"
 )
 
-// NormalizeMetricName normalizes the metric name to match the pattern [a-zA-Z_:.][a-zA-Z0-9_:.]*
+// NormalizeMetricName normalizes the metric name so that it starts with a Unicode letter or underscore,
+// followed by Unicode letters, digits, underscores, colons, or dots.
 // Unsafe characters are replaced with underscores.
 // If the metric name starts with a digit, it is prefixed with an underscore.
 func NormalizeMetricName(name string) string {
