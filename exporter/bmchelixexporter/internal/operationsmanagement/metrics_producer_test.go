@@ -242,7 +242,16 @@ func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Snapshot input labels before the call to verify immutability
+			originalLabels := make(map[string]string, len(tt.inputMetric.Labels))
+			for k, v := range tt.inputMetric.Labels {
+				originalLabels[k] = v
+			}
+
 			result := createEnrichedMetricWithDpAttributes(tt.inputMetric, tt.dpAttrs)
+
+			// Ensure the input metric is not mutated (including entityId and all other labels)
+			assert.Equal(t, originalLabels, tt.inputMetric.Labels, "input metric labels must not be mutated")
 
 			if tt.expectNil {
 				assert.Nil(t, result)
@@ -251,8 +260,8 @@ func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 
 			assert.NotNil(t, result)
 			assert.Equal(t, tt.expectedMetricName, result.Labels["metricName"])
-			// Ensure original metric is not mutated
-			assert.NotEqual(t, tt.inputMetric.Labels["metricName"], result.Labels["metricName"])
+			// Ensure the enriched metric name differs from the original
+			assert.NotEqual(t, originalLabels["metricName"], result.Labels["metricName"])
 		})
 	}
 }
