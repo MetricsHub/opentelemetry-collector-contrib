@@ -167,6 +167,10 @@ func (mp *MetricsProducer) createHelixMetrics(metric pmetric.Metric, resourceAtt
 					enriched.Labels[rateMetricFlag] = "true"
 				}
 				helixMetrics = append(helixMetrics, *enriched)
+
+				// Remove rate flag from the original metric after entityId was deleted by createEnrichedMetricWithDpAttributes
+				// This prevents rate computation with an empty entityId (":"+metricName key collision)
+				delete(metricPayload.Labels, rateMetricFlag)
 			}
 
 			helixMetrics = append(helixMetrics, *metricPayload)
