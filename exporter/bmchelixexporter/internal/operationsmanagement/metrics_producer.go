@@ -343,7 +343,7 @@ func extractResourceAttributes(resource pcommon.Resource) map[string]string {
 
 // createEnrichedMetricWithDpAttributes creates a copy of the metric with non-core datapoint attribute
 // values appended to the metric name as a dot-separated suffix. Attribute keys are sorted
-// alphabetically and their values are normalized (lowercased, special chars replaced with "_").
+// alphabetically and the resulting metric name is normalized (e.g., special chars replaced with "_").
 // Returns nil if no non-core attributes exist. The original metric is not modified.
 func createEnrichedMetricWithDpAttributes(metric *BMCHelixOMMetric, dpAttrs map[string]any) *BMCHelixOMMetric {
 	// Collect dp attribute keys excluding core ones (sorted using insertSorted)
