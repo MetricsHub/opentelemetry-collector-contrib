@@ -242,7 +242,16 @@ func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Snapshot input labels before the call to verify immutability
+			originalLabels := make(map[string]string, len(tt.inputMetric.Labels))
+			for k, v := range tt.inputMetric.Labels {
+				originalLabels[k] = v
+			}
+
 			result := createEnrichedMetricWithDpAttributes(tt.inputMetric, tt.dpAttrs)
+
+			// Ensure the input metric is not mutated (including entityId and all other labels)
+			assert.Equal(t, originalLabels, tt.inputMetric.Labels, "input metric labels must not be mutated")
 
 			if tt.expectNil {
 				assert.Nil(t, result)
@@ -251,8 +260,8 @@ func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 
 			assert.NotNil(t, result)
 			assert.Equal(t, tt.expectedMetricName, result.Labels["metricName"])
-			// Ensure original metric is not mutated
-			assert.NotEqual(t, tt.inputMetric.Labels["metricName"], result.Labels["metricName"])
+			// Ensure the enriched metric name differs from the original
+			assert.NotEqual(t, originalLabels["metricName"], result.Labels["metricName"])
 		})
 	}
 }
@@ -434,28 +443,28 @@ func TestAddRateVariants(t *testing.T) {
 
 func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 	t.Parallel()
-	
+
 	producer := NewMetricsProducer(zap.NewExample())
-	
+
 	// Test 1: Metric with name that normalizes to empty string
 	metrics := pmetric.NewMetrics()
 	rm := metrics.ResourceMetrics().AppendEmpty()
 	resource := rm.Resource()
 	resource.Attributes().PutStr("host.name", "test-host")
-	
+
 	sm := rm.ScopeMetrics().AppendEmpty()
 	metric := sm.Metrics().AppendEmpty()
 	metric.SetName("!@#$%^&*()") // This will normalize to empty
-	
+
 	gauge := metric.SetEmptyGauge()
 	dp := gauge.DataPoints().AppendEmpty()
 	dp.SetTimestamp(1750926531000000000)
 	dp.SetDoubleValue(42.0)
 	dp.Attributes().PutStr("entityTypeId", "test-entity")
 	dp.Attributes().PutStr("entityName", "test-name")
-	
+
 	payload, err := producer.ProduceHelixPayload(metrics)
-	
+
 	// Should not return an error, but the payload should be empty since the metric was skipped
 	assert.NoError(t, err)
 	assert.Empty(t, payload, "Metrics with empty normalized names should be skipped")
@@ -463,7 +472,7 @@ func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 
 func TestCreateEnrichedMetricWithEmptyName(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name        string
 		metricName  string
@@ -490,7 +499,7 @@ func TestCreateEnrichedMetricWithEmptyName(t *testing.T) {
 			description: "Empty base with valid attribute creates enriched metric",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			inputMetric := &BMCHelixOMMetric{

@@ -168,8 +168,13 @@ func (mp *MetricsProducer) createHelixMetrics(metric pmetric.Metric, resourceAtt
 				}
 				helixMetrics = append(helixMetrics, *enriched)
 
-				// Remove rate flag from the original metric after entityId was deleted by createEnrichedMetricWithDpAttributes
-				// This prevents rate computation with an empty entityId (":"+metricName key collision)
+				// Remove entityId from the original metric since a derived metric is being created.
+				// Without entityId, the original metric is forwarded to victoriametrics only (not BHOM),
+				// while the enriched metric with its unique name is reported in BHOM.
+				delete(metricPayload.Labels, "entityId")
+
+				// Remove rate flag from the original metric to prevent rate computation with an
+				// empty entityId (":"+metricName key collision)
 				delete(metricPayload.Labels, rateMetricFlag)
 			}
 
@@ -189,6 +194,11 @@ func (mp *MetricsProducer) createHelixMetrics(metric pmetric.Metric, resourceAtt
 			// for consistent identification in BMC Helix Operations Management
 			if enriched := createEnrichedMetricWithDpAttributes(metricPayload, dp.Attributes().AsRaw()); enriched != nil {
 				helixMetrics = append(helixMetrics, *enriched)
+
+				// Remove entityId from the original metric since a derived metric is being created.
+				// Without entityId, the original metric is forwarded to victoriametrics only (not BHOM),
+				// while the enriched metric with its unique name is reported in BHOM.
+				delete(metricPayload.Labels, "entityId")
 			}
 
 			helixMetrics = append(helixMetrics, *metricPayload)
@@ -391,18 +401,13 @@ func createEnrichedMetricWithDpAttributes(metric *BMCHelixOMMetric, dpAttrs map[
 
 	original := dup.Labels["metricName"]
 	enrichedMetricName := NormalizeMetricName(original + "." + strings.Join(suffixParts, "."))
-	
+
 	// If the enriched metric name is empty, skip this enriched metric
 	if enrichedMetricName == "" {
 		return nil
 	}
-	
-	dup.Labels["metricName"] = enrichedMetricName
 
-	// Remove the entityId from the original metric since a derived metric is being created
-	// This will ensure that the original metric will not be reported in BHOM but still
-	// available in victoriametrics
-	delete(metric.Labels, "entityId")
+	dup.Labels["metricName"] = enrichedMetricName
 
 	return &dup
 }
