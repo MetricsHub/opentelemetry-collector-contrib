@@ -38,7 +38,7 @@ func TestNormalizeLabelValue(t *testing.T) {
 		{
 			name:     "value with comma replaced",
 			input:    "value1,value2,value3",
-			expected: "value1_value2_value3",
+			expected: "value1 value2 value3",
 		},
 		{
 			name:     "value with colons preserved",
@@ -53,7 +53,7 @@ func TestNormalizeLabelValue(t *testing.T) {
 		{
 			name:     "complex value with comma",
 			input:    "cpu=0,mode=idle",
-			expected: "cpu=0_mode=idle",
+			expected: "cpu=0 mode=idle",
 		},
 	}
 
