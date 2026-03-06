@@ -4,6 +4,7 @@
 package operationsmanagement
 
 import (
+	"maps"
 	"testing"
 	"time"
 
@@ -244,9 +245,7 @@ func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Snapshot input labels before the call to verify immutability
 			originalLabels := make(map[string]string, len(tt.inputMetric.Labels))
-			for k, v := range tt.inputMetric.Labels {
-				originalLabels[k] = v
-			}
+			maps.Copy(originalLabels, tt.inputMetric.Labels)
 
 			result := createEnrichedMetricWithDpAttributes(tt.inputMetric, tt.dpAttrs)
 
