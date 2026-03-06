@@ -11,6 +11,7 @@ import (
 // Only ASCII letters, digits, underscores, colons, and dots are accepted.
 // Unsupported characters are replaced with underscores.
 // If the metric name starts with a digit, it is prefixed with an underscore.
+// Consecutive underscores are collapsed into a single underscore.
 func NormalizeMetricName(name string) string {
 	if name == "" {
 		return name
@@ -19,17 +20,14 @@ func NormalizeMetricName(name string) string {
 	// Replace all unsupported characters with underscores
 	name = strings.Map(sanitizeMetricNameRune, name)
 
-	// Collapse consecutive underscores
-	for strings.Contains(name, "__") {
-		name = strings.ReplaceAll(name, "__", "_")
-	}
-
-	// Trim leading and trailing underscores
-	name = strings.Trim(name, "_")
-
 	// Metric name cannot start with a digit, so prefix it with "_" in this case
 	if name != "" && name[0] >= '0' && name[0] <= '9' {
 		name = "_" + name
+	}
+
+	// Collapse consecutive underscores
+	for strings.Contains(name, "__") {
+		name = strings.ReplaceAll(name, "__", "_")
 	}
 
 	return name

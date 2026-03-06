@@ -53,7 +53,7 @@ func TestNormalizeMetricName(t *testing.T) {
 		{
 			name:     "metric name with brackets",
 			input:    "system[cpu](usage)",
-			expected: "system_cpu_usage",
+			expected: "system_cpu_usage_",
 		},
 		{
 			name:     "metric name with consecutive special chars",
@@ -63,7 +63,7 @@ func TestNormalizeMetricName(t *testing.T) {
 		{
 			name:     "metric name with leading/trailing underscores",
 			input:    "_system_cpu_usage_",
-			expected: "system_cpu_usage",
+			expected: "_system_cpu_usage_",
 		},
 		{
 			name:     "metric name with equals and semicolons",
@@ -78,22 +78,22 @@ func TestNormalizeMetricName(t *testing.T) {
 		{
 			name:     "metric name with curly braces",
 			input:    "metric{label}",
-			expected: "metric_label",
+			expected: "metric_label_",
 		},
 		{
-			name:     "metric name with only special characters results in empty",
+			name:     "metric name with only special characters results in underscore",
 			input:    "!@#$%^&*()",
-			expected: "",
+			expected: "_",
 		},
 		{
-			name:     "metric name with only underscores results in empty",
+			name:     "metric name with only underscores collapses to single underscore",
 			input:    "____",
-			expected: "",
+			expected: "_",
 		},
 		{
-			name:     "metric name that becomes empty after normalization",
+			name:     "metric name that becomes all underscores after normalization",
 			input:    "___!!!___",
-			expected: "",
+			expected: "_",
 		},
 		{
 			name:     "metric name with unicode letters is sanitized to ASCII only",
@@ -103,7 +103,7 @@ func TestNormalizeMetricName(t *testing.T) {
 		{
 			name:     "metric name with unicode digits is sanitized to ASCII only",
 			input:    "metric_\u0660\u0661\u0662",
-			expected: "metric",
+			expected: "metric_",
 		},
 		{
 			name:     "metric name with unicode in the middle is sanitized",
