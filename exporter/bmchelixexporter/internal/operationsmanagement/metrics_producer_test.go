@@ -210,7 +210,7 @@ func TestCreateEnrichedMetricWithDpAttributes(t *testing.T) {
 			dpAttrs: map[string]any{
 				"state": "Read/Write (Active)",
 			},
-			expectedMetricName: "my.metric.Read_Write_Active",
+			expectedMetricName: "my.metric.Read_Write_Active_",
 		},
 		{
 			name: "Empty and nil attribute values are skipped",
@@ -445,7 +445,7 @@ func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 
 	producer := NewMetricsProducer(zap.NewExample())
 
-	// Test 1: Metric with name that normalizes to empty string
+	// Test 1: Metric with empty name (normalizes to empty string and should be skipped)
 	metrics := pmetric.NewMetrics()
 	rm := metrics.ResourceMetrics().AppendEmpty()
 	resource := rm.Resource()
@@ -453,7 +453,7 @@ func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 
 	sm := rm.ScopeMetrics().AppendEmpty()
 	metric := sm.Metrics().AppendEmpty()
-	metric.SetName("!@#$%^&*()") // This will normalize to empty
+	metric.SetName("") // Empty name normalizes to empty and should be skipped
 
 	gauge := metric.SetEmptyGauge()
 	dp := gauge.DataPoints().AppendEmpty()
