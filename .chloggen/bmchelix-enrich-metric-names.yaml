@@ -19,7 +19,6 @@ subtext: |
   Normalization is applied to ensure BHOM compatibility:
   - `entityTypeId` and `entityName`: Invalid characters replaced with underscores (colons not allowed as they are used as separators in entityId)
   - `metricName`: Normalized to match pattern `[a-zA-Z_:.][a-zA-Z0-9_:.]*`
-  - `hostname`: Normalized to contain only `a-zA-Z0-9-.`
   - Label values: Commas replaced with underscores
 
 # If your change doesn't affect end users or the exported elements of any package,
