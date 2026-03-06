@@ -19,7 +19,7 @@ subtext: |
   Normalization is applied to ensure BHOM compatibility:
   - `entityTypeId` and `entityName`: Invalid characters replaced with underscores (colons not allowed as they are used as separators in entityId)
   - `metricName`: Normalized to match pattern `[a-zA-Z_:.][a-zA-Z0-9_:.]*`
-  - Label values: Commas replaced with underscores
+  - Label values: Commas replaced with whitespaces
 
 # If your change doesn't affect end users or the exported elements of any package,
 # you should instead start your pull request title with [chore] or use the "Skip Changelog" label.
