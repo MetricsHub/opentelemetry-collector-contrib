@@ -19,7 +19,7 @@ This exporter supports sending metrics to [BMC Helix Operations Management](http
 The following settings are **required**:
 
 - `endpoint`: is the *BMC Helix Portal URL* of your environment, at **onbmc.com** for a BMC Helix SaaS tenant (e.g., `https://company.onbmc.com`), or your own Helix Portal URL for an on-prem instance.
-- `api_key`: API key to authenticate the exporter. Connect to BMC Helix Operations Management, go to the Administration > Repository page, and click on the Copy API Key button to get your API Key. Alternatively, it is recommended to create and use a dedicated [authentication key for external integration](https://docs.bmc.com/docs/helixportal244/using-api-keys-for-external-integrations-1391501992.html).
+- `api_key`: API key to authenticate the exporter. Connect to BMC Helix Operations Management, go to the Administration > Repository page, and click on the Copy API Key button to get your API Key. Alternatively, it is recommended to create and use a dedicated [authentication key for external integration](https://docs.bmc.com/xwiki/bin/view/Helix-Common-Services/BMC-Helix-Portal/BMC-Helix-Portal/helixportal261/Administering/Using-API-keys-for-external-integrations/).
 
 Example:
 
