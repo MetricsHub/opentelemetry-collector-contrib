@@ -16,6 +16,10 @@ type Config struct {
 	confighttp.ClientConfig `mapstructure:",squash"`
 	APIKey                  configopaque.String       `mapstructure:"api_key"`
 	RetryConfig             configretry.BackOffConfig `mapstructure:"retry_on_failure"`
+	// EnrichMetricWithAttributes enables enriched metric creation by appending datapoint
+	// attribute values to the metric name. This increases metric cardinality but provides
+	// more detailed identification in BMC Helix Operations Management. Default is true.
+	EnrichMetricWithAttributes bool `mapstructure:"enrich_metric_with_attributes"`
 }
 
 // validate the configuration

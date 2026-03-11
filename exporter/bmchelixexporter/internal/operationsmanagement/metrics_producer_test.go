@@ -74,7 +74,7 @@ func TestProduceHelixPayload(t *testing.T) {
 
 	expectedPayload := []BMCHelixOMMetric{parent, metric1, metric2}
 
-	producer := NewMetricsProducer(zap.NewExample())
+	producer := NewMetricsProducer(zap.NewExample(), true)
 
 	tests := []struct {
 		name                string
@@ -116,6 +116,52 @@ func TestProduceHelixPayload(t *testing.T) {
 			assert.ElementsMatch(t, tt.expectedPayload, payload, "Payload should match the expected payload")
 		})
 	}
+}
+
+// TestProduceHelixPayloadWithEnrichmentDisabled verifies that when enrichMetricWithAttributes is false,
+// no enriched metrics are created and the original metrics retain their entityId.
+func TestProduceHelixPayloadWithEnrichmentDisabled(t *testing.T) {
+	t.Parallel()
+
+	producer := NewMetricsProducer(zap.NewExample(), false)
+
+	// Generate metrics with non-core attributes that would normally trigger enrichment
+	metrics := pmetric.NewMetrics()
+	rm := metrics.ResourceMetrics().AppendEmpty()
+	rm.Resource().Attributes().PutStr("host.name", "test-hostname")
+	sm := rm.ScopeMetrics().AppendEmpty()
+	metric := sm.Metrics().AppendEmpty()
+	metric.SetName("system.cpu.time")
+	metric.SetUnit("s")
+
+	dp := metric.SetEmptyGauge().DataPoints().AppendEmpty()
+	dp.SetTimestamp(1750926531000000000)
+	dp.SetDoubleValue(42.0)
+	dp.Attributes().PutStr("entityTypeId", "cpu")
+	dp.Attributes().PutStr("entityName", "cpu0")
+	dp.Attributes().PutStr("cpu.mode", "idle") // Non-core attribute that would trigger enrichment
+
+	payload, err := producer.ProduceHelixPayload(metrics)
+	assert.NoError(t, err)
+
+	// With enrichment disabled, we should get:
+	// 1. Parent entity (identity metric)
+	// 2. Original metric with entityId preserved (no enriched variant)
+	// Total: 2 metrics (not 3 as would be with enrichment enabled)
+	assert.Len(t, payload, 2, "Should have parent + original metric only, no enriched variant")
+
+	// Find the actual metric (not the parent identity)
+	var actualMetric *BMCHelixOMMetric
+	for i := range payload {
+		if payload[i].Labels["metricName"] != "identity" {
+			actualMetric = &payload[i]
+			break
+		}
+	}
+
+	assert.NotNil(t, actualMetric, "Should have found the actual metric")
+	assert.Equal(t, "system.cpu.time", actualMetric.Labels["metricName"], "Metric name should not be enriched")
+	assert.NotEmpty(t, actualMetric.Labels["entityId"], "entityId should be preserved when enrichment is disabled")
 }
 
 // Mock data generation for testing
@@ -392,7 +438,7 @@ func TestAddPercentageVariants(t *testing.T) {
 func TestAddRateVariants(t *testing.T) {
 	t.Parallel()
 
-	producer := NewMetricsProducer(zap.NewExample())
+	producer := NewMetricsProducer(zap.NewExample(), true)
 
 	// Create a base counter metric
 	originalLabels := map[string]string{
@@ -443,7 +489,7 @@ func TestAddRateVariants(t *testing.T) {
 func TestEmptyMetricNameSkipsPayload(t *testing.T) {
 	t.Parallel()
 
-	producer := NewMetricsProducer(zap.NewExample())
+	producer := NewMetricsProducer(zap.NewExample(), true)
 
 	// Test 1: Metric with empty name (normalizes to empty string and should be skipped)
 	metrics := pmetric.NewMetrics()

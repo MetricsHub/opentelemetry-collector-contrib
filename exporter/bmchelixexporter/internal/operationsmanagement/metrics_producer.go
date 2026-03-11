@@ -30,15 +30,17 @@ type BMCHelixOMSample struct {
 
 // MetricsProducer is responsible for converting OpenTelemetry metrics into BMC Helix Operations Management metrics
 type MetricsProducer struct {
-	logger           *zap.Logger
-	previousCounters map[string]BMCHelixOMSample
+	logger                     *zap.Logger
+	previousCounters           map[string]BMCHelixOMSample
+	enrichMetricWithAttributes bool
 }
 
 // NewMetricsProducer creates a new MetricsProducer
-func NewMetricsProducer(logger *zap.Logger) *MetricsProducer {
+func NewMetricsProducer(logger *zap.Logger, enrichMetricWithAttributes bool) *MetricsProducer {
 	return &MetricsProducer{
-		logger:           logger,
-		previousCounters: make(map[string]BMCHelixOMSample),
+		logger:                     logger,
+		previousCounters:           make(map[string]BMCHelixOMSample),
+		enrichMetricWithAttributes: enrichMetricWithAttributes,
 	}
 }
 
@@ -161,21 +163,23 @@ func (mp *MetricsProducer) createHelixMetrics(metric pmetric.Metric, resourceAtt
 
 			// This will create a new enriched metric with distinguishing attributes appended to the metric name
 			// for consistent identification in BMC Helix Operations Management
-			if enriched := createEnrichedMetricWithDpAttributes(metricPayload, dp.Attributes().AsRaw()); enriched != nil {
-				// Propagate rate flag if needed (Sum monotonic)
-				if metricPayload.Labels[rateMetricFlag] == "true" {
-					enriched.Labels[rateMetricFlag] = "true"
+			if mp.enrichMetricWithAttributes {
+				if enriched := createEnrichedMetricWithDpAttributes(metricPayload, dp.Attributes().AsRaw()); enriched != nil {
+					// Propagate rate flag if needed (Sum monotonic)
+					if metricPayload.Labels[rateMetricFlag] == "true" {
+						enriched.Labels[rateMetricFlag] = "true"
+					}
+					helixMetrics = append(helixMetrics, *enriched)
+
+					// Remove entityId from the original metric since a derived metric is being created.
+					// Without entityId, the original metric is forwarded to victoriametrics only (not BHOM),
+					// while the enriched metric with its unique name is reported in BHOM.
+					delete(metricPayload.Labels, "entityId")
+
+					// Remove rate flag from the original metric to prevent rate computation with an
+					// empty entityId (":"+metricName key collision)
+					delete(metricPayload.Labels, rateMetricFlag)
 				}
-				helixMetrics = append(helixMetrics, *enriched)
-
-				// Remove entityId from the original metric since a derived metric is being created.
-				// Without entityId, the original metric is forwarded to victoriametrics only (not BHOM),
-				// while the enriched metric with its unique name is reported in BHOM.
-				delete(metricPayload.Labels, "entityId")
-
-				// Remove rate flag from the original metric to prevent rate computation with an
-				// empty entityId (":"+metricName key collision)
-				delete(metricPayload.Labels, rateMetricFlag)
 			}
 
 			helixMetrics = append(helixMetrics, *metricPayload)
@@ -192,13 +196,15 @@ func (mp *MetricsProducer) createHelixMetrics(metric pmetric.Metric, resourceAtt
 			}
 			// This will create a new enriched metric with distinguishing attributes appended to the metric name
 			// for consistent identification in BMC Helix Operations Management
-			if enriched := createEnrichedMetricWithDpAttributes(metricPayload, dp.Attributes().AsRaw()); enriched != nil {
-				helixMetrics = append(helixMetrics, *enriched)
+			if mp.enrichMetricWithAttributes {
+				if enriched := createEnrichedMetricWithDpAttributes(metricPayload, dp.Attributes().AsRaw()); enriched != nil {
+					helixMetrics = append(helixMetrics, *enriched)
 
-				// Remove entityId from the original metric since a derived metric is being created.
-				// Without entityId, the original metric is forwarded to victoriametrics only (not BHOM),
-				// while the enriched metric with its unique name is reported in BHOM.
-				delete(metricPayload.Labels, "entityId")
+					// Remove entityId from the original metric since a derived metric is being created.
+					// Without entityId, the original metric is forwarded to victoriametrics only (not BHOM),
+					// while the enriched metric with its unique name is reported in BHOM.
+					delete(metricPayload.Labels, "entityId")
+				}
 			}
 
 			helixMetrics = append(helixMetrics, *metricPayload)
@@ -298,7 +304,7 @@ func (*MetricsProducer) updateEntityInformation(labels map[string]string, metric
 	// Convert metricAttrs from map[string]any to map[string]string for compatibility
 	stringMetricAttrs := make(map[string]string)
 	for k, v := range dpAttributes {
-		normalizedValue := NormalizeLabelValue(fmt.Sprintf("%v", v))
+		normalizedValue := NormalizeLabelValue(fmt.Sprint(v))
 		stringMetricAttrs[k] = normalizedValue
 		labels[k] = normalizedValue
 	}
@@ -373,7 +379,7 @@ func createEnrichedMetricWithDpAttributes(metric *BMCHelixOMMetric, dpAttrs map[
 		if v == nil {
 			continue
 		}
-		s := fmt.Sprintf("%v", v)
+		s := fmt.Sprint(v)
 		if s == "" {
 			continue
 		}
@@ -387,7 +393,7 @@ func createEnrichedMetricWithDpAttributes(metric *BMCHelixOMMetric, dpAttrs map[
 	// Values-only suffix in sorted key order
 	suffixParts := make([]string, 0, len(keys))
 	for _, k := range keys {
-		suffixParts = append(suffixParts, fmt.Sprintf("%v", dpAttrs[k]))
+		suffixParts = append(suffixParts, fmt.Sprint(dpAttrs[k]))
 	}
 
 	dup := BMCHelixOMMetric{

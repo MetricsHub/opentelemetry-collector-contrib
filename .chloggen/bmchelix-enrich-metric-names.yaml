@@ -16,6 +16,8 @@ issues: [46558]
 # These lines will be padded with 2 spaces and then inserted directly into the document.
 # Use pipe (|) for multiline entries.
 subtext: |
+  This feature is controlled by the `enrich_metric_with_attributes` configuration option (default: `true`).
+  Set to `false` to disable enrichment and reduce metric cardinality.
   Normalization is applied to ensure BHOM compatibility:
   - `entityTypeId` and `entityName`: Invalid characters replaced with underscores (colons not allowed as they are used as separators in entityId)
   - `metricName`: Normalized to match pattern `[a-zA-Z_:.][a-zA-Z0-9_:.]*`

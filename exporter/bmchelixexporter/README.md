@@ -37,6 +37,7 @@ exporters:
 The following settings can be **optionally configured**:
 
 - `timeout`: (default = `10s`) Timeout for requests made to the BMC Helix.
+- `enrich_metric_with_attributes`: (default = `true`) When enabled, creates enriched metrics by appending datapoint attribute values to the metric name. This provides more detailed identification in BMC Helix Operations Management but increases metric cardinality. Set to `false` to reduce the number of unique metric series.
 - `retry_on_failure` [details here](https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/exporterhelper#configuration)
   - `enabled` (default = true)
   - `initial_interval` (default = 5s) Time to wait after the first failure before retrying; ignored if `enabled` is false.
@@ -51,6 +52,7 @@ exporters:
     endpoint: https://company.onbmc.com
     api_key: <api-key>
     timeout: 20s
+    enrich_metric_with_attributes: false
     sending_queue:
       batch:
     retry_on_failure:
